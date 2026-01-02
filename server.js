@@ -1,78 +1,73 @@
-require('dotenv').config();
-const express = require('express');
-const bodyParser = require('body-parser');
-const axios = require('axios');
+import express from "express";
+import bodyParser from "body-parser";
+import fetch from "node-fetch";
 
 const app = express();
+
+// Body parser
 app.use(bodyParser.json());
 
+// ENV variables
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
-/* ===============================
-   HEALTH CHECK
-================================ */
-app.get('/', (req, res) => {
-  res.send('Messenger bot is running ✅');
+// Health check
+app.get("/", (req, res) => {
+  res.send("Facebook Messenger Bot is running 🚀");
 });
 
-/* ===============================
-   WEBHOOK VERIFICATION (GET)
-================================ */
-app.get('/webhook', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
+// Webhook verification (GET)
+app.get("/webhook", (req, res) => {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
 
-  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    console.log('✅ Webhook verified');
-    return res.status(200).send(challenge);
+  if (mode === "subscribe" && token === VERIFY_TOKEN) {
+    console.log("Webhook verified");
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
   }
-
-  return res.sendStatus(403);
 });
 
-/* ===============================
-   RECEIVE MESSAGES (POST)
-================================ */
-app.post('/webhook', (req, res) => {
+// Receive messages (POST)
+app.post("/webhook", async (req, res) => {
   const entry = req.body.entry?.[0];
   const messaging = entry?.messaging?.[0];
 
-  if (messaging?.message?.text) {
-    const senderId = messaging.sender.id;
-    const text = messaging.message.text;
-
-    console.log('📩 Message:', text);
-
-    sendMessage(senderId, `You said: ${text}`);
+  if (!messaging) {
+    return res.sendStatus(200);
   }
 
-  res.sendStatus(200);
+  const senderId = messaging.sender.id;
+
+  // If user sent a message
+  if (messaging.message?.text) {
+    const userMessage = messaging.message.text;
+    console.log("Message received:", userMessage);
+
+    await sendMessage(senderId, `You said: ${userMessage}`);
+  }
+
+  res.status(200).send("EVENT_RECEIVED");
 });
 
-/* ===============================
-   SEND MESSAGE TO USER
-================================ */
-function sendMessage(psid, message) {
-  axios.post(
-    'https://graph.facebook.com/v18.0/me/messages',
-    {
-      recipient: { id: psid },
-      message: { text: message }
-    },
-    {
-      params: { access_token: PAGE_ACCESS_TOKEN }
-    }
-  ).catch(err => {
-    console.error('❌ Send error:', err.response?.data || err.message);
+// Send message to Facebook
+async function sendMessage(senderId, text) {
+  const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+
+  await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      recipient: { id: senderId },
+      message: { text }
+    })
   });
 }
 
-/* ===============================
-   START SERVER
-================================ */
+// Start server
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
