@@ -1,22 +1,19 @@
 import express from "express";
 import bodyParser from "body-parser";
-import fetch from "node-fetch";
+import axios from "axios";
 
 const app = express();
-
-// Body parser
 app.use(bodyParser.json());
 
-// ENV variables
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 // Health check
 app.get("/", (req, res) => {
-  res.send("Facebook Messenger Bot is running 🚀");
+  res.send("Messenger bot is running 🚀");
 });
 
-// Webhook verification (GET)
+// Webhook verification
 app.get("/webhook", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
@@ -24,46 +21,43 @@ app.get("/webhook", (req, res) => {
 
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
     console.log("Webhook verified");
-    res.status(200).send(challenge);
-  } else {
-    res.sendStatus(403);
+    return res.status(200).send(challenge);
   }
+  return res.sendStatus(403);
 });
 
-// Receive messages (POST)
+// Receive messages
 app.post("/webhook", async (req, res) => {
   const entry = req.body.entry?.[0];
-  const messaging = entry?.messaging?.[0];
+  const event = entry?.messaging?.[0];
 
-  if (!messaging) {
-    return res.sendStatus(200);
-  }
+  if (!event) return res.sendStatus(200);
 
-  const senderId = messaging.sender.id;
+  const senderId = event.sender.id;
 
-  // If user sent a message
-  if (messaging.message?.text) {
-    const userMessage = messaging.message.text;
-    console.log("Message received:", userMessage);
-
-    await sendMessage(senderId, `You said: ${userMessage}`);
+  if (event.message?.text) {
+    const text = event.message.text;
+    console.log("Message received:", text);
+    await sendMessage(senderId, `You said: ${text}`);
   }
 
   res.status(200).send("EVENT_RECEIVED");
 });
 
-// Send message to Facebook
+// Send message to FB
 async function sendMessage(senderId, text) {
-  const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+  const url = "https://graph.facebook.com/v18.0/me/messages";
 
-  await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  await axios.post(
+    url,
+    {
       recipient: { id: senderId },
       message: { text }
-    })
-  });
+    },
+    {
+      params: { access_token: PAGE_ACCESS_TOKEN }
+    }
+  );
 }
 
 // Start server
