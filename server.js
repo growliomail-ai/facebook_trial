@@ -46,18 +46,27 @@ app.post("/webhook", async (req, res) => {
 
 // Send message to FB
 async function sendMessage(senderId, text) {
-  const url = "https://graph.facebook.com/v18.0/me/messages";
+  try {
+    const response = await axios.post(
+      "https://graph.facebook.com/v18.0/me/messages",
+      {
+        recipient: { id: senderId },
+        message: { text }
+      },
+      {
+        params: {
+          access_token: process.env.PAGE_ACCESS_TOKEN
+        }
+      }
+    );
 
-  await axios.post(
-    url,
-    {
-      recipient: { id: senderId },
-      message: { text }
-    },
-    {
-      params: { access_token: PAGE_ACCESS_TOKEN }
-    }
-  );
+    console.log("Message sent:", response.data);
+  } catch (err) {
+    console.error(
+      "Send message error:",
+      err.response?.data || err.message
+    );
+  }
 }
 
 // Start server
