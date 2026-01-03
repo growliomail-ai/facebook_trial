@@ -137,8 +137,8 @@ app.post("/webhook", async (req, res) => {
 
     res.sendStatus(200);
   } catch (err) {
-    console.error("SEND ERROR:", err.response?.data || err.message);
-    res.sendStatus(500);
+    console.error("SEND ERROR:", err.response?.data || err.message || err);
+    res.sendStatus(200);
   }
 });
 
