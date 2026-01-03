@@ -103,6 +103,7 @@ app.get("/webhook", (req, res) => {
 
 // webhook receive
 app.post("/webhook", async (req, res) => {
+  console.log("WEBHOOK HIT", JSON.stringify(req.body));
   try {
     const entry = req.body.entry?.[0];
     const event = entry?.messaging?.[0];
