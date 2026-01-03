@@ -108,24 +108,20 @@ app.post("/webhook", async (req, res) => {
     const event = entry?.messaging?.[0];
     if (!event) return res.sendStatus(200);
 
-    const pageId = entry.id;
+    const pageId = event.recipient.id;
     const senderId = event.sender.id;
     const text = event.message?.text;
-
     if (!text) return res.sendStatus(200);
 
-    // fetch token for this page
     const [rows] = await db.query(
       "SELECT page_access_token FROM pages WHERE page_id = ?",
       [pageId]
     );
 
     if (!rows.length) {
-      console.log("No page token found");
+      console.log("No token for page:", pageId);
       return res.sendStatus(200);
     }
-
-    const token = rows[0].page_access_token;
 
     await axios.post(
       "https://graph.facebook.com/v18.0/me/messages",
@@ -134,16 +130,17 @@ app.post("/webhook", async (req, res) => {
         message: { text: `You said: ${text}` }
       },
       {
-        params: { access_token: token }
+        params: { access_token: rows[0].page_access_token }
       }
     );
 
     res.sendStatus(200);
   } catch (err) {
-    console.error(err.response?.data || err.message);
+    console.error("SEND ERROR:", err.response?.data || err.message);
     res.sendStatus(500);
   }
 });
+
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
