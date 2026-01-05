@@ -153,7 +153,25 @@ app.post("/webhook", async (req, res) => {
 });
 
 
+
+// Init DB
+async function initDb() {
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS pages (
+        page_id VARCHAR(255) PRIMARY KEY,
+        page_access_token TEXT NOT NULL
+      );
+    `);
+    console.log("Database initialized: pages table ready");
+  } catch (err) {
+    console.error("DB Init Error:", err);
+  }
+}
+
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log("Server running on", PORT);
+initDb().then(() => {
+  app.listen(PORT, () => {
+    console.log("Server running on", PORT);
+  });
 });
