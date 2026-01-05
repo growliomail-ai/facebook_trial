@@ -124,8 +124,8 @@ app.post("/webhook", async (req, res) => {
     const text = event.message?.text;
     if (!text) return res.sendStatus(200);
 
-    const [rows] = await db.query(
-      "SELECT page_access_token FROM pages WHERE page_id = ?",
+    const { rows } = await db.query(
+      "SELECT page_access_token FROM pages WHERE page_id = $1",
       [pageId]
     );
 
