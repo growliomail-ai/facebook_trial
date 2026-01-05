@@ -164,6 +164,20 @@ async function initDb() {
       );
     `);
     console.log("Database initialized: pages table ready");
+
+    const { PAGE_ID, PAGE_ACCESS_TOKEN } = process.env;
+    if (PAGE_ID && PAGE_ACCESS_TOKEN) {
+      await db.query(
+        `INSERT INTO pages (page_id, page_access_token)
+         VALUES ($1, $2)
+         ON CONFLICT (page_id) DO UPDATE 
+         SET page_access_token = EXCLUDED.page_access_token`,
+        [PAGE_ID, PAGE_ACCESS_TOKEN]
+      );
+      console.log(`Seeded page token for Page ID: ${PAGE_ID}`);
+    } else {
+      console.log("Skipping seed: Missing PAGE_ID or PAGE_ACCESS_TOKEN in .env");
+    }
   } catch (err) {
     console.error("DB Init Error:", err);
   }
